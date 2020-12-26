@@ -3,13 +3,27 @@ import * as monaco from 'monaco-editor';
 type DotNetObjectReference = any;
 const registeredCompletionHandlers = {};
 
+let editor : monaco.editor.IStandaloneCodeEditor;
+
+export function getEditor() : monaco.editor.IStandaloneCodeEditor{
+    return editor;
+}
+
+export function focusEditor() {
+    editor.focus();
+}
+
+export function getEditorContent() : string {
+    return editor.getValue();
+}
+
 export function init(element: HTMLElement, component: DotNetObjectReference, language: string, value: string) {
     if (!registeredCompletionHandlers[language]) {
         registeredCompletionHandlers[language] = true;
         monaco.languages.registerCompletionItemProvider(language, new RemoteCompletionItemProvider());
     }
-    
-    const editor = monaco.editor.create(element, {
+
+    editor = monaco.editor.create(element, {
         value: value,
         language: language,
         minimap: { enabled: false },
@@ -43,7 +57,7 @@ class RemoteCompletionItemProvider implements monaco.languages.CompletionItemPro
                 };
             }
         }
-        
+
         return { suggestions: [] };
     }
 }

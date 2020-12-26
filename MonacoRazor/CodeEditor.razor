@@ -1,16 +1,19 @@
 ﻿@inject IJSRuntime JS
 @implements IAsyncDisposable
 
-<div class="editor" @ref="element"></div>
+<div class="editor" @ref="Element" @onkeydown="@onkeydown"></div>
 
 @code {
     [Parameter] public string Language { get; set; }
     [Parameter] public string Code { get; set; }
     [Parameter] public EventCallback<string> CodeChanged { get; set; }
     [Parameter] public Func<string, Position, Task<Suggestion[]>> OnCompletionsRequested { get; set; }
+    [Parameter] public EventCallback<CodeEditor> OnInit { get; set; }
+    [Parameter] public EventCallback<KeyboardEventArgs> onkeydown { get; set; }
 
     private DotNetObjectReference<CodeEditor> thisReference;
-    private ElementReference element;
+    public ElementReference Element;
+    public Task InitTask;
     private readonly Lazy<Task<IJSObjectReference>> moduleTask;
 
     public CodeEditor()
@@ -24,9 +27,25 @@
     {
         if (firstRender)
         {
+            Console.WriteLine("Monaco.CodeEditor: firstRender");
             var module = await moduleTask.Value;
-            await module.InvokeVoidAsync("init", element, thisReference, Language ?? "csharp", Code);
+            InitTask = module.InvokeVoidAsync("init", Element, thisReference, Language ?? "csharp", Code).AsTask();
+            await InitTask;
+            Console.WriteLine("Monaco.CodeEditor: firstRender done!");
+            await OnInit.InvokeAsync();
         }
+    }
+
+    public async Task<string> GetEditorContent() {
+        var module = await moduleTask.Value;
+        return await module.InvokeAsync<string>("getEditorContent");
+    }
+
+    public async Task Focus() {
+        var module = await moduleTask.Value;
+        @* await InitTask; *@
+        @* await module.InvokeVoidAsync("editor.focus"); *@
+        await module.InvokeVoidAsync("focusEditor");
     }
 
     [JSInvokable]
